@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/C++-17-blue?logo=cplusplus&logoColor=white" alt="C++17">
   <img src="https://img.shields.io/badge/Platform-Linux-lightgrey?logo=linux&logoColor=white" alt="Linux">
-  <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License">
+
   <img src="https://img.shields.io/badge/Status-Active-brightgreen" alt="Active">
 </p>
 
@@ -211,11 +211,7 @@ Contributions are welcome! Feel free to:
 
 ---
 
-## 📄 License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
-
----
 
 ## 👤 Author
 
