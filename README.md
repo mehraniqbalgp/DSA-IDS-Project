@@ -220,7 +220,9 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 ## 👤 Author
 
 **Mehran Iqbal**  
-GitHub: [@mehraniqbalgp](https://github.com/mehraniqbalgp)
+🔗 GitHub: [@mehraniqbalgp](https://github.com/mehraniqbalgp)  
+💼 LinkedIn: [mehraniqbalgp](https://linkedin.com/in/mehraniqbalgp)  
+🌐 Website: [retrax.co](https://retrax.co)
 
 ---
 
