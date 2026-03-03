@@ -1,0 +1,96 @@
+# ===== AUTHENTICATION EVENTS =====
+login successful=LOW
+failed login=MEDIUM
+multiple failed login=HIGH
+logout=INFO
+session expired=LOW
+password changed=MEDIUM
+account locked=HIGH
+account unlocked=MEDIUM
+new user created=MEDIUM
+user deleted=HIGH
+
+# ===== PRIVILEGE ESCALATION =====
+root access=CRITICAL
+sudo command=HIGH
+privilege escalation=CRITICAL
+admin login=HIGH
+su command=HIGH
+chmod 777=HIGH
+setuid=CRITICAL
+
+# ===== FILE SYSTEM ACCESS =====
+/etc/passwd=CRITICAL
+/etc/shadow=CRITICAL
+/etc/sudoers=CRITICAL
+.ssh/authorized_keys=CRITICAL
+.bash_history=MEDIUM
+sensitive file access=HIGH
+file deletion=MEDIUM
+config file modified=HIGH
+
+# ===== NETWORK ATTACKS =====
+port scan=HIGH
+syn flood=CRITICAL
+ddos attack=CRITICAL
+icmp flood=HIGH
+udp flood=HIGH
+arp spoofing=CRITICAL
+dns spoofing=CRITICAL
+man in the middle=CRITICAL
+packet injection=HIGH
+
+# ===== WEB ATTACKS =====
+sql injection=CRITICAL
+xss attack=CRITICAL
+csrf attack=HIGH
+directory traversal=HIGH
+command injection=CRITICAL
+file inclusion=CRITICAL
+buffer overflow=CRITICAL
+xml injection=HIGH
+
+# ===== MALWARE SIGNATURES =====
+malware detected=CRITICAL
+virus signature=CRITICAL
+trojan detected=CRITICAL
+ransomware=CRITICAL
+keylogger=CRITICAL
+backdoor=CRITICAL
+rootkit=CRITICAL
+worm detected=HIGH
+spyware=HIGH
+
+# ===== DATA EXFILTRATION =====
+large data transfer=HIGH
+unusual outbound traffic=HIGH
+data exfiltration=CRITICAL
+ftp upload=MEDIUM
+unauthorized download=HIGH
+email attachment=MEDIUM
+
+# ===== SYSTEM EVENTS =====
+service started=LOW
+service stopped=MEDIUM
+system reboot=MEDIUM
+firewall disabled=CRITICAL
+antivirus disabled=CRITICAL
+log cleared=CRITICAL
+cron job added=HIGH
+scheduled task=MEDIUM
+
+# ===== RECONNAISSANCE =====
+nmap scan=HIGH
+vulnerability scan=HIGH
+fingerprinting=MEDIUM
+banner grabbing=MEDIUM
+enumeration=HIGH
+
+# ===== SUSPICIOUS BEHAVIOR =====
+brute force=CRITICAL
+dictionary attack=CRITICAL
+credential stuffing=HIGH
+unusual login time=MEDIUM
+geographic anomaly=HIGH
+multiple source ips=HIGH
+rapid requests=MEDIUM

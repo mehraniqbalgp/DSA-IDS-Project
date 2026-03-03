@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network IDS | Advanced Guard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.5);
+            --secondary: #a855f7;
+            --bg-dark: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+
+            --critical: #ef4444;
+            --high: #f97316;
+            --medium: #f59e0b;
+            --low: #22c55e;
+            --info: #3b82f6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image:
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.15) 0px, transparent 50%);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            height: 100vh;
+            position: fixed;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 3rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            list-style: none;
+            flex-grow: 1;
+        }
+
+        .nav-item {
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0.8rem 1rem;
+            border-radius: 12px;
+            color: var(--text-dim);
+            text-decoration: none;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            transform: translateX(5px);
+        }
+
+        .nav-link.active {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2));
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-left: 3px solid var(--primary);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex-grow: 1;
+            margin-left: 280px;
+            padding: 2rem;
+            max-width: calc(100% - 280px);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--glass-border);
+        }
+
+        .status-badge.idle span {
+            color: var(--medium);
+        }
+
+        .status-badge.capturing span {
+            color: var(--low);
+        }
+
+        .status-badge .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .status-badge.capturing .dot {
+            box-shadow: 0 0 10px var(--low);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.5);
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Glass Cards */
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 1.5rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .grid-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .stat-trend {
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Controls Area */
+        .controls-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 20;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+
+        .glass-input {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 0.8rem 1rem;
+            color: white;
+            transition: all 0.3s;
+        }
+
+        .glass-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(15, 23, 42, 0.8);
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .glass-select-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .glass-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 110%;
+            left: 0;
+            width: 100%;
+            background: var(--bg-dark);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            z-index: 2000;
+            max-height: 250px;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .dropdown-item {
+            padding: 0.8rem 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .dropdown-item .iface-name {
+            display: block;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .dropdown-item .iface-ip {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px var(--primary-glow);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: white;
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid var(--critical);
+            color: var(--critical);
+        }
+
+        .btn-danger:hover {
+            background: var(--critical);
+            color: white;
+        }
+
+        /* Severity Bubbles */
+        .severity-grid {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .sev-bubble {
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-width: 120px;
+            background: rgba(15, 23, 42, 0.4);
+            border-left: 4px solid var(--info);
+        }
+
+        .sev-bubble.critical {
+            border-left-color: var(--critical);
+            color: var(--critical);
+        }
+
+        .sev-bubble.high {
+            border-left-color: var(--high);
+            color: var(--high);
+        }
+
+        .sev-bubble.medium {
+            border-left-color: var(--medium);
+            color: var(--medium);
+        }
+
+        .sev-bubble.low {
+            border-left-color: var(--low);
+            color: var(--low);
+        }
+
+        .log-entry:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: scale(1.005);
+        }
+
+        .feedback-btns {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .log-entry:hover .feedback-btns {
+            opacity: 1;
+        }
+
+        .btn-mini {
+            padding: 4px 10px;
+            font-size: 0.7rem;
+            border-radius: 6px;
+        }
+
+        .verified-threat {
+            border-left: 4px solid var(--critical) !important;
+        }
+
+        .false-alarm {
+            opacity: 0.5;
+            filter: grayscale(1);
+        }
+
+        .sev-count {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+
+        /* Event Log */
+        .event-log-container {
+            margin-top: 2rem;
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .log-scroll {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .log-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .log-scroll::-webkit-scrollbar-thumb {
+            background: var(--glass-border);
+            border-radius: 3px;
+        }
+
+        .log-entry {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1rem;
+            margin-bottom: 0.8rem;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 1.5rem;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .entry-time {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            font-family: monospace;
+        }
+
+        .entry-details strong {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .entry-severity {
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .modal-content {
+            background: var(--bg-dark);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            width: 100%;
+            max-width: 600px;
+            padding: 2.5rem;
+            position: relative;
+            box-shadow: 0 50px 100px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 80px;
+                padding: 1.5rem 0.5rem;
+                align-items: center;
+            }
+
+            .logo span {
+                display: none;
+            }
+
+            .nav-link span {
+                display: none;
+            }
+
+            .main-content {
+                margin-left: 80px;
+                max-width: calc(100% - 80px);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .controls-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="logo">
+            🛡️ <span>IDS GUARD</span>
+        </div>
+        <ul class="nav-links">
+            <li class="nav-item"><a class="nav-link active">🏠 <span>Dashboard</span></a></li>
+            <li class="nav-item"><a class="nav-link" onclick="openMonitoredIPsModal()">👁️ <span>Monitored
+                        IPs</span></a></li>
+            <li class="nav-item"><a class="nav-link" onclick="openRulesModal()">📜 <span>Detection Rules</span></a></li>
+            <li class="nav-item"><a class="nav-link" onclick="exportResults()">📥 <span>Export Data</span></a></li>
+        </ul>
+        <div class="connection-status status-badge" id="connectionStatus">
+            <div class="dot"></div> <span>Connected</span>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="header">
+            <div>
+                <h1>Security Overview</h1>
+                <p style="color: var(--text-dim);">Live packet analysis & threat detection</p>
+            </div>
+            <div class="system-status">
+                <div class="status-badge idle" id="statusBadge">
+                    <div class="dot"></div> <span>IDLE</span>
+                </div>
+            </div>
+        </header>
+
+        <section class="grid-stats">
+            <div class="glass-card stat-card">
+                <span class="stat-label">Total Packets</span>
+                <span class="stat-value" id="totalPackets">0</span>
+                <span class="stat-trend" style="color: var(--low);">↑ Stable flow</span>
+            </div>
+            <div class="glass-card stat-card">
+                <span class="stat-label">Capture Runtime</span>
+                <span class="stat-value" id="captureTime">0s</span>
+                <span class="stat-trend" id="currentInterface">None selected</span>
+            </div>
+            <div class="glass-card stat-card">
+                <span class="stat-label">Threat Indicators</span>
+                <div class="severity-grid" style="margin-top: 5px;">
+                    <div class="sev-bubble critical" title="Possible SYN Flood">SYN <span class="sev-count"
+                            id="synFloodCount">0</span></div>
+                    <div class="sev-bubble high" title="Similar Packet Burst">BURST <span class="sev-count"
+                            id="burstCount">0</span></div>
+                    <div class="sev-bubble medium" title="Possible Port Scan">SCAN <span class="sev-count"
+                            id="portScanCount">0</span></div>
+                </div>
+            </div>
+        </section>
+
+        <section style="margin-bottom: 2rem;">
+            <div class="glass-card" style="width: 100%;">
+                <h3 style="margin-bottom: 1.5rem; font-size: 1.1rem;">Advanced Network Analytics</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                    <div style="height: 320px; min-width: 0;">
+                        <canvas id="topTalkersChart"></canvas>
+                    </div>
+                    <div style="height: 320px; min-width: 0;">
+                        <canvas id="topPortsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="controls-section">
+            <div class="glass-card">
+                <h3 style="margin-bottom: 1.5rem;">Packet Capture Control</h3>
+                <div style="display: flex; gap: 15px; align-items: flex-end;">
+                    <div class="input-group" style="flex: 1; margin-bottom: 0; position: relative;">
+                        <label>Network Interface</label>
+                        <div class="glass-select-container">
+                            <div class="glass-input" id="interfaceDropdownButton" onclick="toggleInterfaceDropdown()"
+                                style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                                <span id="selectedInterfaceText">Select Interface...</span>
+                                <span style="font-size: 0.8rem; transform: scaleY(0.6);">▼</span>
+                            </div>
+                            <div id="interfaceDropdownMenu" class="glass-dropdown-menu">
+                                <!-- Options will be populated here -->
+                            </div>
+                        </div>
+                        <input type="hidden" id="interfaceInput" value="">
+                    </div>
+                    <button class="btn btn-primary" onclick="startCapture()">🚀 Start</button>
+                    <button class="btn btn-danger" onclick="stopCapture()">⏹ Stop</button>
+                </div>
+            </div>
+            <div class="glass-card">
+                <h3>System Health</h3>
+                <div class="severity-grid" style="margin-top: 1rem;">
+                    <div class="sev-bubble critical">CRIT <span class="sev-count" id="criticalCount">0</span></div>
+                    <div class="sev-bubble high">HIGH <span class="sev-count" id="highCount">0</span></div>
+                    <div class="sev-bubble medium">MED <span class="sev-count" id="mediumCount">0</span></div>
+                    <div class="sev-bubble low">LOW <span class="sev-count" id="lowCount">0</span></div>
+                    <div class="sev-bubble info">INFO <span class="sev-count" id="infoCount">0</span></div>
+                    <div class="sev-bubble info" style="border-left-color: var(--text-dim); color: var(--text-dim);">
+                        FALSE <span class="sev-count" id="falseAlarmsCount">0</span></div>
+                </div>
+                <div style="margin-top: 1.5rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                    <label style="font-size: 0.8rem; color: var(--text-dim);">PCAP Replay</label>
+                    <div style="display: flex; gap: 10px; margin-top: 5px;">
+                        <input type="file" id="pcapUpload" style="display: none;" onchange="uploadPCAP()">
+                        <button class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.8rem; flex: 1;"
+                            onclick="document.getElementById('pcapUpload').click()">📤 Upload PCAP</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card event-log-container">
+            <div class="log-header"
+                style="display: flex; flex-direction: column; align-items: stretch; gap: 15px; margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0;">Live Event Stream</h3>
+                    <span
+                        style="font-size: 0.8rem; color: var(--text-dim); background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 20px;"
+                        id="packetRate">0 pkts/sec</span>
+                </div>
+
+                <div class="filters-row" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <div style="flex: 2; min-width: 200px; position: relative;">
+                        <input type="text" id="filterIP" class="glass-input"
+                            placeholder="Search by IP or description..." style="padding-left: 35px;"
+                            oninput="applyFilters()">
+                        <span
+                            style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); opacity: 0.5;">🔍</span>
+                    </div>
+                    <select id="filterSeverity" class="glass-input" style="flex: 1; min-width: 130px;"
+                        onchange="applyFilters()">
+                        <option value="ALL">All Severities</option>
+                        <option value="CRITICAL">Critical</option>
+                        <option value="HIGH">High</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="LOW">Low</option>
+                        <option value="INFO">Info</option>
+                    </select>
+                    <select id="filterStatus" class="glass-input" style="flex: 1; min-width: 130px;"
+                        onchange="applyFilters()">
+                        <option value="ALL">All Status</option>
+                        <option value="VERIFIED">True Threats</option>
+                        <option value="FALSE">False Alarms</option>
+                        <option value="PENDING">Pending Review</option>
+                    </select>
+                </div>
+            </div>
+            <div class="log-scroll" id="eventLogContainer">
+                <div style="text-align: center; color: var(--text-dim); padding-top: 100px;">
+                    📡 Monitoring network for events...
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="monitoredIPsModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeMonitoredIPsModal()">×</button>
+            <h2 style="margin-bottom: 1.5rem;">Monitored Assets</h2>
+            <div class="input-group">
+                <label>Add IP Address</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="newIPAddress" class="glass-input" placeholder="192.168.1.1">
+                    <input type="text" id="newIPNote" class="glass-input" placeholder="Tag">
+                    <button class="btn btn-primary" onclick="addMonitoredIP()">Add</button>
+                </div>
+            </div>
+            <div id="monitoredIPList" style="margin-top: 1.5rem; max-height: 300px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="interfacesModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeInterfacesModal()">×</button>
+            <h2 style="margin-bottom: 1.5rem;">Available Interfaces</h2>
+            <div id="interfacesList" style="display: grid; gap: 10px;"></div>
+        </div>
+    </div>
+    <div class="modal-overlay" id="rulesModal">
+        <div class="modal-content" style="max-width: 800px;">
+            <button class="modal-close" onclick="closeRulesModal()">×</button>
+            <h2 style="margin-bottom: 1.5rem;">Detection Rules Management</h2>
+            <div class="input-group" style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 16px;">
+                <label>Add New Detection Rule</label>
+                <div style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 10px; margin-top: 10px;">
+                    <input type="text" id="newRuleKeyword" class="glass-input" placeholder="Keyword (e.g. exploit)">
+                    <select id="newRuleSeverity" class="glass-input">
+                        <option value="CRITICAL">CRITICAL</option>
+                        <option value="HIGH">HIGH</option>
+                        <option value="MEDIUM">MEDIUM</option>
+                        <option value="LOW">LOW</option>
+                        <option value="INFO">INFO</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="addRule()">Add Rule</button>
+                </div>
+            </div>
+            <div id="rulesList" style="margin-top: 2rem; max-height: 400px; overflow-y: auto;">
+                <!-- Rules list will be injected here -->
+            </div>
+        </div>
+    </div>
+    <script>
+        const API_BASE = 'http://localhost:8080';
+        let allEvents = [];
+        let lastPacketCount = 0;
+
+        let talkersChart, portsChart;
+
+        function initCharts() {
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#94a3b8', font: { size: 10 } }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#94a3b8', font: { size: 10 } }
+                    }
+                }
+            };
+
+            talkersChart = new Chart(document.getElementById('topTalkersChart'), {
+                type: 'bar',
+                data: { labels: [], datasets: [{ label: 'Hits', data: [], backgroundColor: '#6366f1' }] },
+                options: { ...chartOptions, plugins: { ...chartOptions.plugins, title: { display: true, text: 'TOP TALKERS (IP)', color: '#94a3b8' } } }
+            });
+
+            portsChart = new Chart(document.getElementById('topPortsChart'), {
+                type: 'bar',
+                data: { labels: [], datasets: [{ label: 'Hits', data: [], backgroundColor: '#a855f7' }] },
+                options: { ...chartOptions, plugins: { ...chartOptions.plugins, title: { display: true, text: 'TOP PORTS', color: '#94a3b8' } } }
+            });
+        }
+
+        async function fetchAPI(endpoint) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`);
+                if (!response.ok) throw new Error('API request failed');
+                return await response.json();
+            } catch (error) {
+                updateConnectionStatus(false);
+                return null;
+            }
+        }
+
+        async function postAPI(endpoint, data) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                return await response.json();
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            const el = document.getElementById('connectionStatus');
+            if (connected) {
+                el.classList.add('connected');
+                el.classList.remove('disconnected');
+                el.querySelector('span').textContent = 'Live System';
+                el.querySelector('.dot').style.color = 'var(--low)';
+            } else {
+                el.classList.add('disconnected');
+                el.classList.remove('connected');
+                el.querySelector('span').textContent = 'Disconnected';
+                el.querySelector('.dot').style.color = 'var(--critical)';
+            }
+        }
+
+        let verificationStore = {}; // Map of eventId -> status ('verified' | 'false')
+
+        let lastProcessedTotal = -1;
+
+        async function updateDashboard() {
+            const stats = await fetchAPI('/api/stats');
+            if (stats) {
+                updateConnectionStatus(true);
+
+                const hasNewData = stats.total !== lastProcessedTotal;
+
+                document.getElementById('criticalCount').textContent = stats.critical;
+                document.getElementById('highCount').textContent = stats.high;
+                document.getElementById('mediumCount').textContent = stats.medium;
+                document.getElementById('lowCount').textContent = stats.low;
+                document.getElementById('infoCount').textContent = stats.info;
+                document.getElementById('falseAlarmsCount').textContent = stats.falseAlarms || 0;
+
+                // Specific Threat Counters
+                document.getElementById('synFloodCount').textContent = stats.synFloods || 0;
+                document.getElementById('burstCount').textContent = stats.bursts || 0;
+                document.getElementById('portScanCount').textContent = stats.portScans || 0;
+
+                document.getElementById('totalPackets').textContent = stats.total.toLocaleString();
+                document.getElementById('captureTime').textContent = stats.captureTime + 's';
+                document.getElementById('currentInterface').textContent = stats.interface ? `Active on ${stats.interface}` : 'Ready to capture';
+
+                const rate = stats.total - lastPacketCount;
+                document.getElementById('packetRate').textContent = `${rate} pkts/2sec`;
+                lastPacketCount = stats.total;
+
+                const badge = document.getElementById('statusBadge');
+                if (stats.capturing) {
+                    badge.className = 'status-badge capturing';
+                    badge.querySelector('span').textContent = 'CAPTURING';
+                } else {
+                    badge.className = 'status-badge idle';
+                    badge.querySelector('span').textContent = 'IDLE';
+                }
+
+                // If new packets detected, fetch and re-render events
+                if (hasNewData) {
+                    const events = await fetchAPI('/api/events');
+                    if (events) {
+                        allEvents = events;
+                        renderEvents(events);
+                        lastProcessedTotal = stats.total;
+                    }
+                }
+            }
+
+            updateAnalytics();
+        }
+
+        async function updateAnalytics() {
+            const data = await fetchAPI('/api/analytics');
+            if (data) {
+                talkersChart.data.labels = data.topTalkers.map(t => t.ip);
+                talkersChart.data.datasets[0].data = data.topTalkers.map(t => t.count);
+                talkersChart.update();
+
+                portsChart.data.labels = data.topPorts.map(p => `Port ${p.port}`);
+                portsChart.data.datasets[0].data = data.topPorts.map(p => p.count);
+                portsChart.update();
+            }
+        }
+
+        function renderEvents(events) {
+            const container = document.getElementById('eventLogContainer');
+            if (events.length === 0) return;
+
+            const ipFilter = document.getElementById('filterIP').value.toLowerCase();
+            const sevFilter = document.getElementById('filterSeverity').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+
+            const filteredEvents = events.filter(event => {
+                const eventId = `event-${event.timestamp.replace(/[: ]/g, '')}`;
+                const status = verificationStore[eventId] || 'pending';
+
+                const search = ipFilter.toLowerCase();
+                const matchIP = event.sourceIP.toLowerCase().includes(search) ||
+                    event.destIP.toLowerCase().includes(search) ||
+                    event.description.toLowerCase().includes(search);
+
+                const matchSev = sevFilter === 'ALL' || event.severity === sevFilter;
+                const matchStatus = statusFilter === 'ALL' ||
+                    (statusFilter === 'VERIFIED' && status === 'verified') ||
+                    (statusFilter === 'FALSE' && status === 'false') ||
+                    (statusFilter === 'PENDING' && status === 'pending');
+
+                return matchIP && matchSev && matchStatus;
+            });
+
+            const html = filteredEvents.slice(-50).reverse().map(event => {
+                const eventId = `event-${event.timestamp.replace(/[: ]/g, '')}`;
+                const status = verificationStore[eventId];
+                let statusClass = '';
+                let feedbackContent = `
+                    <button class="btn btn-mini btn-primary" onclick="submitFeedback('${event.sourceIP}', true, '${eventId}')">✅ True Threat</button>
+                    <button class="btn btn-mini btn-outline" onclick="submitFeedback('${event.sourceIP}', false, '${eventId}')">❌ False Alarm</button>
+                `;
+
+                if (status === 'verified') {
+                    statusClass = 'verified-threat';
+                    feedbackContent = '<span style="color: var(--low); font-size: 0.7rem;">Verified as True Threat</span>';
+                } else if (status === 'false') {
+                    statusClass = 'false-alarm';
+                    feedbackContent = '<span style="color: var(--text-dim); font-size: 0.7rem;">Marked as False Alarm</span>';
+                }
+
+                return `
+                    <div class="log-entry ${statusClass}" id="${eventId}">
+                        <span class="entry-time">${event.timestamp.split(' ')[1]}</span>
+                        <div class="entry-details" style="flex: 1;">
+                            <strong>${event.protocol}</strong>: ${event.sourceIP} → ${event.destIP}
+                            <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 4px;">${event.description}</div>
+                            <div class="feedback-btns">
+                                ${feedbackContent}
+                            </div>
+                        </div>
+                        <span class="entry-severity" style="background: ${getSevBG(event.severity)}; color: ${getSevColor(event.severity)}">
+                            ${event.severity}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+
+            if (filteredEvents.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-dim);">No events match current filters</div>';
+            } else {
+                container.innerHTML = html;
+            }
+        }
+
+        function applyFilters() {
+            renderEvents(allEvents);
+        }
+
+        function getSevBG(sev) {
+            const opacity = '20%';
+            if (sev === 'CRITICAL') return `rgba(239, 68, 68, 0.2)`;
+            if (sev === 'HIGH') return `rgba(249, 115, 22, 0.2)`;
+            if (sev === 'MEDIUM') return `rgba(245, 158, 11, 0.2)`;
+            if (sev === 'LOW') return `rgba(34, 197, 94, 0.2)`;
+            return `rgba(59, 130, 246, 0.2)`;
+        }
+
+        function getSevColor(sev) {
+            if (sev === 'CRITICAL') return 'var(--critical)';
+            if (sev === 'HIGH') return 'var(--high)';
+            if (sev === 'MEDIUM') return 'var(--medium)';
+            if (sev === 'LOW') return 'var(--low)';
+            return 'var(--info)';
+        }
+
+        async function startCapture() {
+            const iface = document.getElementById('interfaceInput').value.trim();
+            if (!iface) {
+                alert('Specify an interface first.');
+                return;
+            }
+            await postAPI('/api/start-capture', { interface: iface });
+            updateDashboard();
+        }
+
+        async function stopCapture() {
+            await postAPI('/api/stop-capture', {});
+            updateDashboard();
+        }
+
+        async function listInterfaces() {
+            const interfaces = await fetchAPI('/api/interfaces');
+            if (interfaces) {
+                const menu = document.getElementById('interfaceDropdownMenu');
+                menu.innerHTML = interfaces.map(iface => `
+                    <div class="dropdown-item" onclick="selectInterface('${iface.name}', '${iface.ip}')">
+                        <span class="iface-name">${iface.name}</span>
+                        <span class="iface-ip">${iface.ip} — ${iface.description}</span>
+                    </div>
+                `).join('');
+
+                // Also update the legacy modal just in case
+                document.getElementById('interfacesList').innerHTML = interfaces.map(iface => `
+                    <div class="glass-input" style="cursor: pointer; display: flex; justify-content: space-between; margin-bottom: 8px;" 
+                         onclick="selectInterface('${iface.name}', '${iface.ip}')">
+                        <div>
+                            <strong>${iface.name}</strong><br>
+                            <small style="color: var(--text-dim);">${iface.ip}</small>
+                        </div>
+                        <span style="font-size: 0.8rem; color: var(--text-dim);">${iface.description}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function toggleInterfaceDropdown() {
+            const menu = document.getElementById('interfaceDropdownMenu');
+            const isVisible = menu.style.display === 'block';
+
+            // Close all dropdowns first
+            document.querySelectorAll('.glass-dropdown-menu').forEach(m => m.style.display = 'none');
+
+            if (!isVisible) {
+                menu.style.display = 'block';
+                listInterfaces(); // Refresh list on open
+            }
+        }
+
+        function selectInterface(name, ip) {
+            document.getElementById('interfaceInput').value = name;
+            document.getElementById('selectedInterfaceText').textContent = `${name} (${ip})`;
+            document.getElementById('interfaceDropdownMenu').style.display = 'none';
+            closeInterfacesModal();
+        }
+
+        // Close dropdown when clicking outside
+        window.onclick = function (event) {
+            if (!event.target.closest('.glass-select-container')) {
+                document.querySelectorAll('.glass-dropdown-menu').forEach(m => m.style.display = 'none');
+            }
+        }
+
+        function openMonitoredIPsModal() {
+            renderMonitoredIPs();
+            document.getElementById('monitoredIPsModal').style.display = 'flex';
+        }
+
+        async function renderMonitoredIPs() {
+            const ips = await fetchAPI('/api/monitored-ips');
+            const container = document.getElementById('monitoredIPList');
+            if (!ips || ips.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-dim);">No monitored assets</p>';
+                return;
+            }
+            container.innerHTML = ips.map(item => `
+                <div class="log-entry" style="grid-template-columns: 1fr auto;">
+                    <div>
+                        <div style="font-weight: 600; color: var(--primary);">${item.ip}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-dim);">${item.note}</div>
+                    </div>
+                    <button class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.7rem;" 
+                            onclick="removeMonitoredIP('${item.ip}')">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        async function addMonitoredIP() {
+            const ip = document.getElementById('newIPAddress').value.trim();
+            const note = document.getElementById('newIPNote').value.trim();
+            if (ip) {
+                await postAPI('/api/add-monitored-ip', { ip, note: note || 'Guard Asset' });
+                document.getElementById('newIPAddress').value = '';
+                document.getElementById('newIPNote').value = '';
+                renderMonitoredIPs();
+            }
+        }
+
+        async function removeMonitoredIP(ip) {
+            await fetchAPI(`/api/remove-monitored-ip/${ip}`);
+            renderMonitoredIPs();
+        }
+
+        async function submitFeedback(ip, isTrue, elementId) {
+            const result = await postAPI('/api/feedback', { ip, isTruePositive: isTrue });
+
+            if (result) {
+                verificationStore[elementId] = isTrue ? 'verified' : 'false';
+                applyFilters(); // Re-render to show updated status
+            }
+        }
+
+        function exportResults() {
+            if (allEvents.length === 0) return alert('No data to export.');
+            let csv = 'Timestamp,Source,Dest,Proto,Severity,Description\n';
+            allEvents.forEach(e => {
+                csv += `"${e.timestamp}","${e.sourceIP}","${e.destIP}","${e.protocol}","${e.severity}","${e.description}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ids_export.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        async function uploadPCAP() {
+            const fileInput = document.getElementById('pcapUpload');
+            if (!fileInput.files.length) return;
+
+            const formData = new FormData();
+            formData.append('pcap', fileInput.files[0]);
+
+            try {
+                const response = await fetch(`${API_BASE}/api/upload-pcap`, {
+                    method: 'POST',
+                    body: formData
+                });
+                if (response.ok) {
+                    alert('PCAP analysis complete!');
+                    updateDashboard();
+                } else {
+                    alert('Upload failed.');
+                }
+            } catch (e) {
+                alert('Network error during upload.');
+            }
+            fileInput.value = '';
+        }
+
+        function closeMonitoredIPsModal() { document.getElementById('monitoredIPsModal').style.display = 'none'; }
+        function closeInterfacesModal() { document.getElementById('interfacesModal').style.display = 'none'; }
+
+        function openRulesModal() {
+            renderRules();
+            document.getElementById('rulesModal').style.display = 'flex';
+        }
+
+        function closeRulesModal() {
+            document.getElementById('rulesModal').style.display = 'none';
+        }
+
+        async function renderRules() {
+            const rules = await fetchAPI('/api/rules');
+            const container = document.getElementById('rulesList');
+            if (!rules || rules.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-dim);">No custom rules defined</p>';
+                return;
+            }
+            container.innerHTML = `
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead>
+                        <tr style="color: var(--text-dim); font-size: 0.8rem; border-bottom: 1px solid var(--glass-border);">
+                            <th style="padding: 10px;">Keyword</th>
+                            <th style="padding: 10px;">Severity</th>
+                            <th style="padding: 10px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rules.map(rule => `
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                <td style="padding: 12px; font-weight: 600;">${rule.keyword}</td>
+                                <td style="padding: 12px;">
+                                    <span class="entry-severity" style="background: ${getSevBG(rule.severity)}; color: ${getSevColor(rule.severity)}">
+                                        ${rule.severity}
+                                    </span>
+                                </td>
+                                <td style="padding: 12px;">
+                                    <button class="btn btn-danger" style="padding: 4px 10px; font-size: 0.7rem;" 
+                                            onclick="removeRule('${rule.keyword}')">Delete</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        async function addRule() {
+            const keyword = document.getElementById('newRuleKeyword').value.trim();
+            const severity = document.getElementById('newRuleSeverity').value;
+            if (keyword) {
+                await postAPI('/api/add-rule', { keyword, severity });
+                document.getElementById('newRuleKeyword').value = '';
+                renderRules();
+            }
+        }
+
+        async function removeRule(keyword) {
+            if (confirm(`Are you sure you want to delete the rule for "${keyword}"?`)) {
+                await fetchAPI(`/api/remove-rule/${keyword}`);
+                renderRules();
+            }
+        }
+
+        setInterval(updateDashboard, 2000);
+        initCharts();
+        updateDashboard();
+    </script>
+</body>
+
+</html>
