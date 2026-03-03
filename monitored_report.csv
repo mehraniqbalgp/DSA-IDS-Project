@@ -1,8 +1,0 @@
-Timestamp,Source,Event,Severity,Note
-2025-11-10 10:14:04,172.16.0.30,User login successful,LOW,Critical IP of Attacker
----SUMMARY---
-INFO: 0
-LOW: 1
-MEDIUM: 0
-HIGH: 0
-CRITICAL: 0

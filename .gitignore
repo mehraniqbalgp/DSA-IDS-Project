@@ -2,4 +2,24 @@
 ids
 ids_integrated
 *.o
+*.out
+
+# PCAP files (can be large)
 *.pcap
+
+# Generated data files
+intelligence.dat
+result.csv
+report.txt
+monitored_report.csv
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
